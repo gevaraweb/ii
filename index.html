@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Нейронная сеть</title>
+	<meta charset="utf-8">
+	<style>
+		    body {
+			     margin: 5;
+			     padding: 0;
+				 background-image: url("");
+				 background-color: #cccccc;				 
+			}
+				  
+	.tod {
+        position: absolute; /* Относительное позиционирование */
+		height: 30px; /* Высота блока */   
+		width: 30px;
+		text-align:center;
+		/*padding:1px 1px 1px 1px; */ 
+        background-color: white;
+		display: table-cell; 
+		vertical-align: middle;
+		border:solid 1px #888389;
+		font-family: 'Cardo', serif;
+		font-size: 18px;
+		font-style: normal;
+		font-weight: 500;					
+		}	
+	.red {
+        background-color: #CD6155;	
+	}
+	.green {
+        background-color: #98FB98;
+		background-color2: #58D68D;	
+	}		
+	.sum {	
+		font-size: 18px;
+		font-weight: 600;		
+	}	
+	
+	last3, last7 {
+		opacity: 0;
+	}
+
+	.fade-in {
+		display: block;
+		transition: display .9s ease;
+	}	
+	</style>
+
+
+</head>
+<body>
+<div style = "width: 900px;" > 
+<p>Задание. Подберите коэффициенты (параметры) нейронной сети так, чтобы все буквы в верхнем ряду имели положительный вес, равный или больший трем, а все буквы в нижнем ряду имели отрицательный вес, равный или меньший минус трем.</p>
+<p>Для изменения коэффициентов достаточно кликать мышкой по ним. Значения параметров меняются от -2 до 2.</p>
+</div>
+
+<div id="zadacha1" style = "position: relative; height: 460px; width: 990px;" > 
+    <h2 style = "position: absolute; left:  50px;">Обучение сети</h2>
+    <h2 style = "position: absolute; left: 660px;">Предсказание сети</h2>	
+	<div style = "position: absolute;  left: 0px; top:60px; height: 400px; width: 910px; padding: 10px 10px 10px 10px;  "> 
+		<div id = "table1"  style = "cursor: pointer; " ></div>
+	</div>
+	<div style = "position: absolute;  left: 430px; top:51px; height: 520px;  width: 520px; ">
+		<canvas id="myCanvas" width="520" height="520">
+			<p>Ваш браузер не поддерживает рисование.</p>
+		</canvas>
+	</div>
+	<div id="x_n" style = "position: absolute; left: 600px; top:60px; height: 520px;  width: 620px; "></div>	
+</div>
+<div style = "width: 900px; display: none;" id="result"> 
+<p>Нейронная сеть обучена! Нажмите <input type="button" onclick="predict();" value="предсказать"></p>
+</div>
+
+<script type="text/javascript">
+	var myCanvas = document.getElementById('myCanvas');
+	var ctx = myCanvas.getContext('2d');
+	var td_size = 30; var endGame = false;
+
+            let R, mcountx, mcounty, sizex, sizey, countx, county, rx, ry, hx, hy;
+
+            mcountx = 3; mcounty = 8; R = 9; hx = 11; hy = 104; rx = 186; ry = 7;
+            sizex = mcountx * 2 * R + 2 * hx + (mcountx - 1) * rx;
+            sizey = mcounty * 2 * R + 2 * hy + (mcounty - 1) * ry;
+
+            let array_neuron = new Array(2);
+            array_neuron[0] = 15; array_neuron[1] = 1;
+
+            let count, biasy, bloky;
+			let jj = 0;
+                count = array_neuron[ jj ];
+                let x_center = hx + R + jj*(2*R+rx);
+                bloky = count * 2 * R + ry * (count - 1);
+                biasy = (sizey - bloky) / 2;
+
+				let x_next = hx + R + (jj+1)*(2*R+rx);
+				let y_next = biasy + R + 2 * R * 7 + ry * 7;
+					
+				let _html = "";
+				
+                for (let j = 0; j < count; j++)
+                {
+                    let y_center = biasy + R + 2 * R * j + ry * j;
+					//DrawCircle(x_center, y_center, R, '#000000', '#228B22');
+					DrawRect(x_center, y_center, 4*R, 2*R, '#000000', '#228B22')
+					DrawLine(x_center+2*R, y_center, x_next, y_next);
+					
+				    _html = _html +'<div style="position: absolute; left: '+ String(-170+hx+1) +'px; top: '+ String(-11+hy-90+2 * R * j + ry*j) +'px;">x<sub>' + String(j) + '</sub></div>';	
+ 				    
+					let m = String( Math.trunc( j / 3 ) ); let n = String( j % 3 ); 
+					_html = _html +'<div id="ii1_' + m + "_" + n + '" style="position: absolute; left: '+ String(-170+hx+31) +'px; top: '+ String(-11+hy-90+2 * R * j * 0.93 + ry*j) +'px;">0</div>';
+				}  
+	
+			jj = 1;				
+			x_center = hx + R + jj*(2*R+rx);
+			y_center = biasy + R + 2 * R * 7 + ry * 7;				
+			DrawCircle(x_center, y_center, 3*R, '#000000', '#DAA520');
+			//_html = _html +'<div style="position: absolute; left: '+ String(x_center-5) +'px; top: '+ String(y_center-10) +'px;">y</div>';	
+					
+			document.getElementById( "x_n" ).innerHTML = _html;
+
+function DrawCircle(centerX, centerY, radius, strokeStyle, fillStyle) {
+			ctx.beginPath();
+			ctx.strokeStyle = strokeStyle; 
+			ctx.lineWidth = 1;
+			ctx.arc(centerX, centerY, radius, 0, 2*Math.PI, true);
+			ctx.closePath();
+			ctx.stroke();
+			ctx.fillStyle = fillStyle;
+			ctx.fill();
+}
+
+function DrawRect(centerX, centerY, width, height, strokeStyle, fillStyle) {
+
+			ctx.beginPath();
+			ctx.strokeStyle = strokeStyle; 
+			ctx.lineWidth = 1;
+			ctx.fillStyle = fillStyle;
+			ctx.fillRect(centerX-width/2, centerY-height/2, width, height);
+			ctx.strokeRect(centerX-width/2, centerY-height/2, width, height);
+
+}	
+
+function DrawLine(x1, y1, x2, y2) {
+
+			ctx.moveTo(x1,y1);
+			ctx.lineTo(x2,y2);
+			ctx.strokeStyle = '#000000';
+			ctx.lineWidth = 0.5;
+			ctx.stroke();
+
+}
+	
+</script>
+
+
+<script>
+		
+		var bukva = new Array(100);
+		for (let i=0; i<bukva.length; ++i) 
+			{  
+				bukva[i]=new Array( 3 );					
+			}
+
+		var num = 0;
+		
+		// Буква У
+		bukva[num][0]="101011001010100";
+		bukva[num][1]="101101111010100";
+		bukva[num][2]="101101010010110";
+		bukva[num][3]="101111001010100";
+		bukva[num][4]="У";
+
+		num++;		
+		// Буква Т
+		bukva[num][1]="111111010010010";
+		bukva[num][0]="000111010010010";
+		bukva[num][3]="111010010010010";
+		bukva[num][2]="111010010010000";		
+		bukva[num][4]="Т";
+		
+		num++;
+		// Буква Г
+		bukva[num][0]="011010010010010";
+		bukva[num][1]="011011010010010";
+		bukva[num][2]="000011010010010";
+		bukva[num][3]="011010010010000";
+		bukva[num][4]="Г";
+		
+		// вторая группа
+		
+		num++;
+		// Буква А
+		bukva[num][2]="110101111101101";
+		bukva[num][1]="011101111101101";
+		bukva[num][0]="010101111101101";
+		bukva[num][3]="111101111101101";		
+		bukva[num][4]="А";
+		
+		num++;
+		// Буква О
+		bukva[num][0]="111101101101111";
+		bukva[num][1]="011101101101110";		
+		bukva[num][2]="010101101101010";
+		bukva[num][3]="110101101101011";		
+		bukva[num][4]="О";
+		
+		num++;
+		// Буква С
+		bukva[num][0]="111100100100111";
+		bukva[num][1]="111100100101111";
+		bukva[num][2]="111101100100111";
+		bukva[num][3]="111101100101111"
+		bukva[num][4]="С";
+		
+		num++;
+		// Буква Р		
+		bukva[num][0]="111101111100100";
+		bukva[num][1]="110101111100100";
+		bukva[num][2]="110101110100100";
+		bukva[num][3]="111101110100100";
+		bukva[num][4]="Р";
+
+		num++;
+		// Буква Е
+		bukva[num][0]="111100110100111";
+		bukva[num][1]="110100110100110";
+		bukva[num][2]="111101111100111";
+		bukva[num][3]="111100111100111";		
+		bukva[num][4]="Е";
+		
+		var i_top = getRandomInt(0,2);
+		var i_bottom = getRandomInt(3,7);
+		var first_letter = bukva[i_top][4];	
+		var two_letter = bukva[i_bottom][4];			
+		
+		var row = 5; var col = 3;
+		_html = ""; x0 = 50; y0 = 10; 
+		
+		let matrix = new Array(row); 
+		
+		for (var i=0; i<row; ++i) 
+			{  
+				matrix[i]=new Array( col );					
+			}
+		for (i=0; i<row; ++i) 
+			{  
+				for (j=0; j<col; ++j)
+					{
+					   matrix[i][j]= 0;  				   
+					}		
+			}  			
+		
+		let id_td_prefix = "ii1_";
+		let i_num = i_top;
+	for (let k=0; k<8; ++k) {
+		//let index = 0; 
+		//if ( k==3 ) { x0 = 50; y0 = 220; i_top = i_bottom; }
+		
+		let index = 0; 
+		if ( k==4 ) { x0 = 50; y0 = 220; i_num = i_bottom; }
+			let col4 = 0; if ( k % 4 == 3) col4 = 300;	
+		if ( k==3 || k==7 ) { _html = _html + '<div id="last' + String(k) + '">'; }			
+		for (var i=0; i<parseInt(row); ++i)
+			{        
+			for (var j=0; j<parseInt(col); ++j)
+				{ 	
+					_html = _html +'<div style="left: '+ String(col4+x0+td_size*j) +'px; top: '+ String(y0+td_size*i) +'px; ' ;
+					_html = _html +'" ';
+					//_html = _html + 'id="'+ id_td_prefix + String(i)+ '_'+ String(j);
+					_html = _html + 'id="'+ id_td_prefix + String(i)+ '_'+ String(j) + '_'+ String(k);					
+					//if (k>0) _html += '_' + String(k);  
+					_html +='"';
+					//if (k == 0) {_html = _html + '  onClick="' + 'zvet(this, '+i+','+j+');" ';}
+					_html = _html + '  onClick="zvet(this)"';			
+					_html = _html + ' class="tod';
+					if ( bukva[i_num][k%4].charAt(index) == "1" ) _html = _html + ' red';
+						else  _html = _html + ' green';
+					_html = _html + '"';			
+					_html = _html + '> '; 
+					//_html = _html + String(index);	//"0";
+					_html = _html + "0";					
+					_html = _html + '</div>\n'; 
+					index++;
+				}
+			}
+			
+			_html = _html + '<div class="sum" id="sum_' + String(k) + '" style="position: absolute; left: '+ String(col4+0+x0+1*(k%3)) +'px; top: '+ String(160+y0) +'px;">∑ = 0</div>';
+			x0 = x0 + 120; //console.log( "x0= " + x0 );
+			if ( k==3 || k==7) { _html = _html + "</div id=\"cc\">"; }	
+		}
+		
+		document.getElementById( "table1" ).innerHTML = _html; 
+		document.getElementById("last3").style.display = 'none'; 
+		document.getElementById("last7").style.display = 'none'; 		
+		let sound = new Audio("https://sound-pack.net/download/Sound_22272.mp3");
+
+function zvet(_this) {
+	if ( endGame ) return;
+	let c = parseInt( _this.innerHTML );
+	c = c + 1; if (c==3) c=-2;
+	_this.innerHTML = String(c);
+	//console.log( _this.id );
+	let ids = _this.id.slice(0, -2);
+	//console.log( ids );	
+	document.getElementById( ids + "_0" ).innerHTML = String(c);	
+	document.getElementById( ids + "_1" ).innerHTML = String(c);
+	document.getElementById( ids + "_2" ).innerHTML = String(c);
+	document.getElementById( ids + "_3" ).innerHTML = String(c);
+	document.getElementById( ids + "_4" ).innerHTML = String(c);
+	document.getElementById( ids + "_5" ).innerHTML = String(c);
+	document.getElementById( ids + "_6" ).innerHTML = String(c);
+	document.getElementById( ids + "_7" ).innerHTML = String(c);	
+	
+	document.getElementById( ids ).innerHTML = String(c);
+	
+	//console.log( "__________________________________________" );
+	let i_num = i_top;
+	for (let k=0; k<8; ++k) {
+		let index = 0; 
+		if ( k==4 ) { i_num = i_bottom; }
+		let sum = 0;
+		for (var i=0; i<parseInt(row); ++i)
+			{        
+			for (var j=0; j<parseInt(col); ++j)
+				{ 			
+					let a = document.getElementById( id_td_prefix + String(i)+ '_'+ String(j) + '_'+ String(k) ).innerHTML;
+					
+					if ( bukva[i_num][k%4].charAt(index) == "1" )
+						sum += parseInt( a );
+					index++;				
+				}
+			}
+			document.getElementById( "sum_" + String(k) ).innerHTML = "∑ = "+sum; 
+			//console.log( sum );
+		}
+		
+		let flag = true;
+		for (let k=0; k<3; ++k) { 
+			let sum = parseInt( document.getElementById( "sum_" + String(k) ).innerHTML.substring(3) ); 
+			//console.log("ves="+sum);
+			if (sum<3) flag = false;
+		}
+		for (let k=4; k<7; ++k) { 
+			let sum = parseInt( document.getElementById( "sum_" + String(k) ).innerHTML.substring(3) ); 
+			//console.log("ves="+sum);
+			if (sum>-3) flag = false;
+		}
+	    //console.log( "__________________________________________" );
+        if (flag) { 
+			document.getElementById("result").style.display = 'block'; 
+			endGame = true;
+			sound.play();
+		}		
+}
+
+function predict(){
+		//document.getElementById('last3').classList.add('fade-in');
+		//document.getElementById('last7').classList.add('fade-in');		
+		document.getElementById("last3").style.display = 'block';
+		document.getElementById("last7").style.display = 'block';
+		let sum1 = parseInt( document.getElementById( "sum_3" ).innerHTML.substring(3) ); 
+		if (sum1>0) document.getElementById( "sum_3" ).innerHTML += ". Буква " + first_letter + "!";
+		if (sum1==0) document.getElementById( "sum_3" ).innerHTML += ". Буква не определена";		
+		if (sum1<0) document.getElementById( "sum_3" ).innerHTML += ". Буква " + two_letter + "!";		
+		let sum2 = parseInt( document.getElementById( "sum_7" ).innerHTML.substring(3) ); 
+		if (sum2>0) document.getElementById( "sum_7" ).innerHTML += ". Буква " + first_letter + "!";
+		if (sum2==0) document.getElementById( "sum_7" ).innerHTML += ". Буква не определена";		
+		if (sum2<0) document.getElementById( "sum_7" ).innerHTML += ". Буква " + two_letter + "!";
+		document.getElementById("result").style.display = 'none';		
+}
+
+function norightmouse() {
+  return false;
+} 
+document.oncontextmenu=norightmouse;
+document.onmousedown=norightmouse;		
+
+function getRandomInt(min, max) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}			
+</script>
+</body>
+</html>
